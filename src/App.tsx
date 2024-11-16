@@ -1,151 +1,137 @@
-import React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { useCurrencyData } from "./hooks/useCurrencyData";
-import { useBlueDollarRate } from "./hooks/useBlueDollarRate";
-import { Input } from "./components/ui/input";
-import { Button } from "./components/ui/button";
-import { RefreshCw } from "lucide-react";
-import './styles/globals.css';
+import { useState, useEffect } from "react"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Slider } from "@/components/ui/slider"
 
-function App() {
-  const [copAmount, setCopAmount] = React.useState("")
-  const [arsAmount, setArsAmount] = React.useState("")
+type ShotState = 'STATELESS' | 'LIVE' | 'BLANK'
 
-  const {
-    data: usdToCop,
-    refetch: refetchCopRate,
-    isLoading: isLoadingCop,
-    isFetching: isFetchingCop,
-    error: errorCop,
-  } = useCurrencyData()
-  const {
-    data: usdToArs,
-    refetch: refetchArsRate,
-    isLoading: isLoadingArs,
-    isFetching: isFetchingArs,
-    error: errorArs,
-  } = useBlueDollarRate()
+export default function Component() {
+  const [liveShots, setLiveShots] = useState(0)
+  const [blankShots, setBlankShots] = useState(0)
+  const [shotArray, setShotArray] = useState<ShotState[]>([])
 
-  const usdToCopValue = usdToCop?.usd['cop'];
-  const usdToArsValue = usdToArs?.compra;
+  useEffect(() => {
+    const totalShots = liveShots + blankShots
+    setShotArray(Array(totalShots).fill('STATELESS'))
+  }, [liveShots, blankShots])
 
-
-  const isUpdating = isFetchingCop || isFetchingArs
-
-  const updateRates = () => {
-    refetchCopRate()
-    refetchArsRate()
+  const updateShotState = (index: number, newState: ShotState) => {
+    const newShotArray = [...shotArray]
+    newShotArray[index] = newState
+    setShotArray(newShotArray)
   }
 
-  const handleCopChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const cop = e.target.value
-    setCopAmount(cop)
-    const ars =
-      cop && usdToCop && usdToArs
-        ? ((parseFloat(cop) / Number(usdToCopValue)) * Number(usdToArsValue)).toFixed(2)
-        : ""
-    setArsAmount(ars)
+  const resetAll = () => {
+    setLiveShots(0)
+    setBlankShots(0)
+    setShotArray([])
   }
 
-  const handleArsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const ars = e.target.value
-    setArsAmount(ars)
-    const cop =
-      ars && usdToCop && usdToArs
-        ? ((parseFloat(ars) / Number(usdToArsValue)) * Number(usdToCopValue)).toFixed(2)
-        : ""
-    setCopAmount(cop)
+  const getShotColor = (state: ShotState) => {
+    switch (state) {
+      case 'LIVE': return 'bg-destructive'
+      case 'BLANK': return 'bg-primary'
+      default: return 'bg-secondary'
+    }
   }
-
-
-  console.log(isUpdating)
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500 p-4">
-      <Card className="w-full max-w-md bg-white/90 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:shadow-blue-400/30 border-white">
-        <CardHeader className="rounded-t-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-          <CardTitle className="text-center text-2xl font-bold">
-            Currency Converter
-          </CardTitle>
+    <div className="min-h-screen bg-background text-foreground p-8 flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center">Buckshot Roulette Shot Tracker</CardTitle>
         </CardHeader>
-        <CardContent className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-lg bg-blue-100 p-4 text-center transition-all duration-300 hover:bg-blue-200">
-              {isLoadingCop ? (
-                <div className="animate-pulse">
-                  <div className="h-4 rounded bg-blue-200"></div>
-                </div>
-              ) : (
-                <p className="text-sm font-medium text-blue-800">
-                  1 USD = {`${usdToCop?.usd['cop'].toFixed(2)}`} COP
-                </p>
-              )}
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="p-4">
+                <CardTitle className="text-center text-lg">Live Rounds</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-4xl font-bold text-center text-destructive">{liveShots}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="p-4">
+                <CardTitle className="text-center text-lg">Blank Rounds</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-4xl font-bold text-center text-primary">{blankShots}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="live-shots">LIVE SHOTS</Label>
+              <Slider
+                id="live-shots"
+                min={0}
+                max={12}
+                step={1}
+                value={[liveShots]}
+                onValueChange={(value) => setLiveShots(value[0])}
+              />
             </div>
-            <div className="rounded-lg bg-purple-100 p-4 text-center transition-all duration-300 hover:bg-purple-200">
-              {isLoadingArs ? (
-                <div className="animate-pulse">
-                  <div className="h-4 rounded bg-purple-200"></div>
-                </div>
-              ) : (
-                <p className="text-sm font-medium text-purple-800">
-                  1 USD = {`${usdToArs?.compra}`} ARS
-                </p>
-              )}
+            <div className="space-y-2">
+              <Label htmlFor="blank-shots">BLANK SHOTS</Label>
+              <Slider
+                id="blank-shots"
+                min={0}
+                max={12}
+                step={1}
+                value={[blankShots]}
+                onValueChange={(value) => setBlankShots(value[0])}
+              />
             </div>
           </div>
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="cop"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Colombian Peso (COP)
-              </label>
-              <Input
-                type="number"
-                id="cop"
-                value={copAmount}
-                onChange={handleCopChange}
-                placeholder="Enter COP amount"
-                className="w-full ring-0 transition-all duration-300 focus:border-blue-500 focus:ring-blue-500 border-white text-black bg-white ring-white ring-offset-white"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="ars"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Argentine Peso (ARS)
-              </label>
-              <Input
-                type="number"
-                id="ars"
-                value={arsAmount}
-                onChange={handleArsChange}
-                placeholder="Enter ARS amount"
-                className="w-full transition-all duration-300 focus:ring-purple-500 focus:border-purple-500 border-white text-black bg-white ring-white ring-offset-white"
-              />
-            </div>
-            <Button
-              onClick={updateRates}
-              className={`w-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 hover:from-blue-600 hover:to-purple-600 ${isUpdating ? "animate-pulse" : ""} text-white`}
-              disabled={isUpdating}
-            >
-              <RefreshCw
-                className={`mr-2 h-4 w-4 ${isUpdating ? "animate-spin" : ""} text-white`}
-              />
-              {isUpdating ? "Updating..." : "Update Prices"}
-            </Button>
+
+          <div className="flex flex-wrap gap-2 justify-center">
+            {shotArray.map((shot, index) => (
+              <Popover key={index}>
+                <PopoverTrigger>
+                  <div
+                    className={`w-8 h-8 rounded-full ${getShotColor(shot)} transition-colors duration-200`}
+                    role="button"
+                    aria-label={`Shot ${index + 1}: ${shot}`}
+                  />
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <div className="flex flex-col">
+                    <Button
+                      onClick={() => updateShotState(index, 'LIVE')}
+                      variant="destructive"
+                      className="rounded-none"
+                    >
+                      LIVE
+                    </Button>
+                    <Button
+                      onClick={() => updateShotState(index, 'BLANK')}
+                      className="rounded-none"
+                    >
+                      BLANK
+                    </Button>
+                    <Button
+                      onClick={() => updateShotState(index, 'STATELESS')}
+                      variant="secondary"
+                      className="rounded-none"
+                    >
+                      RESET
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ))}
           </div>
         </CardContent>
+        <CardFooter>
+          <Button onClick={resetAll} variant="outline" className="w-full">
+            Reset All
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   )
 }
-
-export default App;
